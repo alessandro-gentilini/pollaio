@@ -3,7 +3,7 @@
  Il Pollaio di Cleto
  
  Autore: Alessandro alessandro.gentilini@gmail.com
- Data  : 30 luglio 2010
+ Data  : 4 agosto 2010
 
  */
  
@@ -150,7 +150,7 @@ void loop()
         {
           digitalWrite( MOTOR, STOP );  
           digitalWrite( DIRECTION, CLOSE_DIR );// bobina rele' non eccitata
-          s.door = closed;
+          s.door = opened;
         }
       }
       else
@@ -159,7 +159,7 @@ void loop()
         {
           digitalWrite( MOTOR, STOP );       
           digitalWrite( DIRECTION, CLOSE_DIR );// bobina rele' non eccitata       
-          s.door = opened;          
+          s.door = closed;          
         }
       }
   }
