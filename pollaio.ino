@@ -3,11 +3,9 @@
  Il Pollaio di Cleto
  
  Autore: Alessandro alessandro.gentilini@gmail.com
- Data  : 30 luglio 2010
+ Data  : 24 luglio 2010
 
  */
- 
-#define SER_DBG_PRINT 1 // commentare la riga per non avere i print su seriale
 
 // tempi in ms
 #define MAX_OPEN_TIME 90000
@@ -106,12 +104,10 @@ void setup()
   s.start_open = millis();
   s.start_close = millis();
   
-  #ifdef SER_DBG_PRINT
   Serial.begin(9600);
   Serial.println("");
   Serial.println("*** PROGRAMMA AVVIATO ***");
   Serial.println("");
-  #endif
   
   digitalWrite( RED_LED, HIGH );
   digitalWrite( GREEN_LED, LOW );  
@@ -122,8 +118,6 @@ void setup()
 
 void loop()
 {
-  digitalWrite( RED_LED, HIGH );//se resta acceso indica hang
-  
   s.open_btn   = digitalRead( OPEN_BTN );
   s.close_btn  = digitalRead( CLOSE_BTN );
   s.manual_btn = digitalRead( MANUAL_BTN );
@@ -149,7 +143,6 @@ void loop()
         if ( s.manual_btn != PRESSED && digitalRead( MOTOR ) == GO && (now - s.start_open) > MAX_OPEN_TIME )
         {
           digitalWrite( MOTOR, STOP );  
-          digitalWrite( DIRECTION, CLOSE_DIR );// bobina rele' non eccitata
           s.door = closed;
         }
       }
@@ -157,19 +150,16 @@ void loop()
       {
         if ( s.manual_btn != PRESSED && digitalRead( MOTOR ) == GO && (now - s.start_close) > MAX_CLOSE_TIME )
         {
-          digitalWrite( MOTOR, STOP );       
-          digitalWrite( DIRECTION, CLOSE_DIR );// bobina rele' non eccitata       
+          digitalWrite( MOTOR, STOP );              
           s.door = opened;          
         }
       }
   }
 
-  #ifdef SER_DBG_PRINT
   if ( s != sp ) 
   {
     print_status();
   }
-  #endif
 
   if ( s.manual_btn == PRESSED )  
   {
@@ -177,7 +167,6 @@ void loop()
       || s.open_btn == RELEASED && s.close_btn == RELEASED )    
     {
       digitalWrite( MOTOR, STOP );
-      digitalWrite( DIRECTION, CLOSE_DIR );// bobina rele' non eccitata
     }  
 
     if ( s.open_btn == PRESSED && s.close_btn == RELEASED )    
@@ -187,12 +176,10 @@ void loop()
       
       s.start_open = millis();
       s.door = unknown_status;
-
-      #ifdef SER_DBG_PRINT      
+      
       Serial.println("");
       Serial.println("COMANDO APERTURA ATTIVO");
       Serial.println("");      
-      #endif
     }
 
     if ( s.open_btn == RELEASED && s.close_btn == PRESSED )    
@@ -203,10 +190,8 @@ void loop()
       s.start_close = millis();
       s.door = unknown_status;
       
-      #ifdef SER_DBG_PRINT
       Serial.println("");
       Serial.println("COMANDO CHIUSURA ATTIVO");
-      #endif
     }
 
   }  
@@ -218,12 +203,9 @@ void loop()
       digitalWrite( MOTOR, GO );
       if ( s.door == closed ) 
       {
-        #ifdef SER_DBG_PRINT
         Serial.println("");
         Serial.println("APERTURA AUTOMATICA PORTA");
         Serial.println("");
-        #endif
-        
         delay(INRUSH_TIME);// per dare tempo al finecorsa di disimpegnarsi
         s.start_open = millis();
       }      
@@ -236,12 +218,9 @@ void loop()
       digitalWrite( MOTOR, GO );
       if ( s.door == opened ) 
       {
-        #ifdef SER_DBG_PRINT
         Serial.println("");
         Serial.println("CHIUSURA AUTOMATICA PORTA");        
         Serial.println("");
-        #endif
-        
         delay(INRUSH_TIME);// per dare tempo al finecorsa di disimpegnarsi
         s.start_close = millis();
       }      
@@ -250,18 +229,14 @@ void loop()
   }
 
   sp = s;
-  
-  digitalWrite( RED_LED, LOW );// se non spengo sono in hang
 }
 
 
 void error( char* msg )
 {
-  #ifdef SER_DBG_PRINT
   Serial.print("ERRORE: ");
   Serial.println(msg);
   Serial.print("RESETTARE");
-  #endif
   while(true){};
 }
 
