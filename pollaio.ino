@@ -3,7 +3,7 @@
  Il Pollaio di Cleto
  
  Autori: Alessandro alessandro.gentilini@gmail.com, Daniele C.
- Data  : 6 agosto 2010
+ Data  : 20 settembre 2010
 
 */
 
@@ -31,7 +31,7 @@
 
 // uscite
 #define MOTOR 11
-#define DIRECTION 7
+#define DIRECTION 13
 
 #define PRESSED LOW
 #define RELEASED HIGH
@@ -43,16 +43,18 @@
 #define CLOSE_DIR LOW
 #define STOP_DIR CLOSE_DIR
 
-#define GREEN_LED 13
+#define GREEN_LED 7
 #define RED_LED 6
 
 #define OPERATION_LED GREEN_LED
 #define ERROR_LED RED_LED
 
-#define SLEEP_TIME 500
+#define OPERATION_LED_OFF_MS 16000
+#define OPERATION_LED_ON_MS 125
 
-#define OPERATION_LED_PERIOD 20
-#define OPERATION_LED_DUTY 1
+#define SLEEP_TIME_AUTO 2000
+#define SLEEP_TIME_MANUAL 500
+#define SLEEP_TIME_LED_ON OPERATION_LED_ON_MS
 
 enum door_status_t
 {
@@ -108,9 +110,25 @@ static inline unsigned long totalMillis ()
 	millis() + Narcoleptic.millis();
 }
 
-static inline void animateOperationLed ()
+static inline bool animateOperationLed ()
+{	
+	static const unsigned long operationLedDuty = OPERATION_LED_ON_MS / SLEEP_TIME_LED_ON;
+	static const unsigned long operationLedPeriod = operationLedDuty + OPERATION_LED_OFF_MS / SLEEP_TIME_AUTO;
+	
+	bool ledOn = cycles % operationLedPeriod < operationLedDuty;
+	digitalWrite (OPERATION_LED, ledOn ? HIGH : LOW);
+	
+	return ledOn;
+}
+
+static inline unsigned long sleepTime (bool ledOn)
 {
-	digitalWrite (OPERATION_LED, cycles % OPERATION_LED_PERIOD < OPERATION_LED_DUTY ? HIGH : LOW);
+	if (ledOn)
+		return SLEEP_TIME_LED_ON;
+	else if ( s.manual_btn == PRESSED )
+		return SLEEP_TIME_MANUAL;
+	else
+		return SLEEP_TIME_AUTO;
 }
 
 static inline void readInputs ()
@@ -294,9 +312,7 @@ void setup()
 }
 
 void loop()
-{
-	animateOperationLed ();
-	
+{	
 	readInputs ();
 
 	if ( s.manual_btn == PRESSED )
@@ -312,7 +328,7 @@ void loop()
 	sp = s;
 	++cycles;
 
-        Narcoleptic.delay (SLEEP_TIME);
+        Narcoleptic.delay (sleepTime(animateOperationLed ()));
 }
 
 
