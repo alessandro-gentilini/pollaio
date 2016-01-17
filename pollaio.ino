@@ -53,8 +53,8 @@
  */
 
 // tempi in ms
-#define FORWARD_TIME 3000
-#define BACKWARD_TIME 3000
+#define MAX_OPEN_TIME 3000
+#define MAX_CLOSE_TIME 3000
 
 // bottoni in ingresso
 #define MANUAL_BTN 12
@@ -63,7 +63,7 @@
 
 // finecorsa
 #define LIMIT_SWT 8
-#define REACHED 0
+#define REACHED 1
 
 // fotoresistore
 #define LIGHT_METER 0
@@ -122,7 +122,10 @@ void setup()
 byte open_btn;
 byte close_btn;
 byte manual_btn;
-byte limit;
+byte limit_swt;
+
+unsigned long start_open;
+unsigned long start_close;
 
 void error( char* msg )
 {
@@ -139,50 +142,133 @@ void loop()
   close_btn  = digitalRead( CLOSE_BTN );
   manual_btn = digitalRead( MANUAL_BTN );
 
-  limit = digitalRead( LIMIT_SWT );
+  limit_swt = digitalRead( LIMIT_SWT );
 
   int light = analogRead( LIGHT_METER ); 
-  if ( light < 512 ) 
+
+  if ( light < 512 )   
   {
     period = night;
-  } 
-  else 
+  }   
+  else   
   {
     period = day;
   }
 
-  if ( limit == REACHED ) 
+  if ( limit_swt == REACHED )   
   {
     digitalWrite( MOTOR, STOP );      
-    int dir = digitalRead( DIRECTION );
-    if ( dir == OPEN_DIR )
+    if ( digitalRead( DIRECTION ) == OPEN_DIR )    
     {
       door = opened;
-    } 
-    else 
+    }     
+    else     
     {
       door = closed;
     }
   }
+  else
+  {
+    if ( digitalRead( DIRECTION ) == OPEN_DIR )
+    {
+      if ( digitalRead( MOTOR ) == GO && millis() - start_open > MAX_OPEN_TIME )
+      {
+        digitalWrite( MOTOR, STOP );              
+        error("L'APERTURA HA IMPIEGATO TROPPO TEMPO");
+      }
+    }
+    else
+    {
+      if ( digitalRead( MOTOR ) == GO && millis() - start_close > MAX_CLOSE_TIME )
+      {
+        digitalWrite( MOTOR, STOP );              
+        error("LA CHIUSURA HA IMPIEGATO TROPPO TEMPO");
+      }      
+    }
+  }
 
-  char b[16];
-  sprintf(b,"LUCE=%d",light);
-  Serial.println(b);  
-
-  switch(period)
+  Serial.println("INGRESSI:");
+  char buf[16];
+  sprintf(buf,"LUCE=%d",light);
+  Serial.print(buf);  
+  switch(period)  
   {
   case day: 
-    Serial.println("GIORNO");
+    Serial.println(" GIORNO");
     break;
   case night: 
-    Serial.println("NOTTE");
+    Serial.println(" NOTTE");
     break;
   default: 
-    error("PERIODO IGNOTO");
+    error(" PERIODO IGNOTO");
     break;
   }
 
-  switch(door)
+  if ( open_btn == PRESSED )
+  {
+    Serial.println("PULSANTE APRI PREMUTO");
+  }
+  else
+  {
+    Serial.println("PULSANTE APRI NON PREMUTO");    
+  }
+
+  if ( close_btn == PRESSED )
+  {
+    Serial.println("PULSANTE CHIUDI PREMUTO");
+  }
+  else
+  {
+    Serial.println("PULSANTE CHIUDI NON PREMUTO");    
+  }
+
+  if ( manual_btn == PRESSED )
+  {
+    Serial.println("PULSANTE MANUALE PREMUTO");
+  }
+  else
+  {
+    Serial.println("PULSANTE MANUALE NON PREMUTO");    
+  }  
+
+  if ( limit_swt == REACHED )  
+  {
+    if ( digitalRead( MOTOR ) == GO ) 
+    {
+      error("FINECORSA IMPEGNATO E MOTORE IN MOVIMENTO");
+    }
+    Serial.println("FINECORSA IMPEGNATO");
+  }  
+  else  
+  {
+    if ( digitalRead( MOTOR ) == STOP ) 
+    {
+      error("FINECORSA LIBERO E MOTORE FERMO");
+    }    
+    Serial.println("FINECORSA LIBERO");
+  }
+
+  Serial.println("");  
+  Serial.println("USCITE:");
+  if ( digitalRead( MOTOR ) == GO )
+  {
+    Serial.println("MOTORE IN MOVIMENTO");
+  }
+  else
+  {
+    Serial.println("MOTORE FERMO");
+  }
+  
+  if ( digitalRead( DIRECTION ) == OPEN_DIR )
+  {
+    Serial.println("DIREZIONE APERTURA");
+  }
+  else
+  {
+    Serial.println("DIREZIONE CHIUSURA");
+  }
+
+  switch(door)  
   {
   case opened:  
     Serial.println("PORTA APERTA"); 
@@ -199,16 +285,18 @@ void loop()
   }
 
 
-  if ( manual_btn == PRESSED )
+
+
+  if ( manual_btn == PRESSED )  
   {
     if (   open_btn == PRESSED && close_btn == PRESSED 
-      || open_btn == RELEASED && close_btn == RELEASED )
+      || open_btn == RELEASED && close_btn == RELEASED )    
     {
       digitalWrite( MOTOR, STOP );
       return;
     }  
 
-    if ( open_btn == PRESSED && close_btn == RELEASED )
+    if ( open_btn == PRESSED && close_btn == RELEASED )    
     {
       digitalWrite( DIRECTION, OPEN_DIR );
       digitalWrite( MOTOR, GO );
@@ -217,7 +305,7 @@ void loop()
       return;
     }
 
-    if ( open_btn == RELEASED && close_btn == PRESSED )
+    if ( open_btn == RELEASED && close_btn == PRESSED )    
     {
       digitalWrite( DIRECTION, CLOSE_DIR );      
       digitalWrite( MOTOR, GO );
@@ -226,27 +314,38 @@ void loop()
       return;        
     }
 
-  } 
-  else 
+  }  
+  else   
   {
-    if ( door == closed && ( open_btn == PRESSED || period == day ) )
+    if ( ( door == closed || door == unknown_status ) && ( open_btn == PRESSED || period == day ) )    
     {
       digitalWrite( DIRECTION, OPEN_DIR );
       digitalWrite( MOTOR, GO );
+      if ( door == closed ) 
+      {
+        start_open = millis();
+      }      
       door = unknown_status;
-      Serial.println("INIZIATA APERTURA AUTOMATICA PORTA");
+      Serial.println("APERTURA AUTOMATICA PORTA IN CORSO");
     }
 
-    if ( door == opened && ( close_btn == PRESSED || period == night ) )
+    if ( ( door == opened || door == unknown_status ) && ( close_btn == PRESSED || period == night ) )    
     {
       digitalWrite( DIRECTION, CLOSE_DIR );
       digitalWrite( MOTOR, GO );
+      if ( door == closed ) 
+      {
+        start_close = millis();
+      }      
       door = unknown_status;
-      Serial.println("INIZIATA CHIUSURA AUTOMATICA PORTA");
+      Serial.println("CHIUSURA AUTOMATICA PORTA IN CORSO");
     }      
-
   }
+
+  Serial.println("-----------------------------------------");
 }
+
+
 
 
 
