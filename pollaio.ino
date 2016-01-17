@@ -53,8 +53,9 @@
  */
 
 // tempi in ms
-#define MAX_OPEN_TIME 3000
-#define MAX_CLOSE_TIME 3000
+#define MAX_OPEN_TIME 2000
+#define MAX_CLOSE_TIME 2000
+#define INRUSH_TIME 1000
 
 // bottoni in ingresso
 #define MANUAL_BTN 12
@@ -274,8 +275,6 @@ void print_status()
 
 void loop()
 {
-  delay(500);
-
   s.open_btn   = digitalRead( OPEN_BTN );
   s.close_btn  = digitalRead( CLOSE_BTN );
   s.manual_btn = digitalRead( MANUAL_BTN );
@@ -310,17 +309,21 @@ void loop()
     unsigned long now = millis();
     if ( digitalRead( DIRECTION ) == OPEN_DIR )
     {
-      if ( digitalRead( MOTOR ) == GO && (now - s.start_open) > MAX_OPEN_TIME )
+      if ( s.manual_btn != PRESSED && digitalRead( MOTOR ) == GO && (now - s.start_open) > MAX_OPEN_TIME )
       {
-        digitalWrite( MOTOR, STOP );              
+        digitalWrite( MOTOR, STOP );  
+        Serial.println(now);
+        Serial.println(s.start_open);
         error("L'APERTURA HA IMPIEGATO TROPPO TEMPO");
       }
     }
     else
     {
-      if ( digitalRead( MOTOR ) == GO && (now - s.start_close) > MAX_CLOSE_TIME )
+      if ( s.manual_btn != PRESSED && digitalRead( MOTOR ) == GO && (now - s.start_close) > MAX_CLOSE_TIME )
       {
         digitalWrite( MOTOR, STOP );              
+        Serial.println(now);       
+        Serial.println(s.start_close);
         error("LA CHIUSURA HA IMPIEGATO TROPPO TEMPO");
       }      
     }
@@ -358,24 +361,28 @@ void loop()
   }  
   else   
   {
-    if ( ( s.door == closed || s.door == unknown_status ) && ( s.open_btn == PRESSED || s.period == day ) )    
+    if ( ( s.door == closed || s.door == unknown_status ) && s.period == day )    
     {
       digitalWrite( DIRECTION, OPEN_DIR );
       digitalWrite( MOTOR, GO );
       if ( s.door == closed ) 
       {
+        Serial.println("\nAPERTURA AUTOMATICA PORTA\n");
+        delay(INRUSH_TIME);// per dare tempo al finecorsa di disimpegnarsi
         s.start_open = millis();
       }      
       s.door = unknown_status;
       Serial.println("\nAPERTURA AUTOMATICA PORTA IN CORSO\n");
     }
 
-    if ( ( s.door == opened || s.door == unknown_status ) && ( s.close_btn == PRESSED || s.period == night ) )    
+    if ( ( s.door == opened || s.door == unknown_status ) && s.period == night )    
     {
       digitalWrite( DIRECTION, CLOSE_DIR );
       digitalWrite( MOTOR, GO );
       if ( s.door == opened ) 
       {
+        Serial.println("\nCHIUSURA AUTOMATICA PORTA\n");        
+        delay(INRUSH_TIME);// per dare tempo al finecorsa di disimpegnarsi
         s.start_close = millis();
       }      
       s.door = unknown_status;
