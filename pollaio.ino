@@ -5,7 +5,9 @@
  Autori: Alessandro alessandro.gentilini@gmail.com, Daniele C.
  Data  : 6 agosto 2010
 
- */
+*/
+
+#include <Narcoleptic.h>
  
 // #define SER_DBG_PRINT // commentare la riga per non avere i print su seriale
 #define ENABLE_VALIDATION // commentare la riga per non avere il meccanismo di validazione giorno notte
@@ -46,8 +48,11 @@
 
 #define OPERATION_LED GREEN_LED
 #define ERROR_LED RED_LED
-#define OPERATION_LED_PERIOD 20000
-#define OPERATION_LED_DUTY 1000
+
+#define SLEEP_TIME 500
+
+#define OPERATION_LED_PERIOD 20
+#define OPERATION_LED_DUTY 1
 
 enum door_status_t
 {
@@ -97,6 +102,11 @@ public:
 Status s, sp;
 
 unsigned long cycles = 0;
+
+static inline unsigned long totalMillis ()
+{
+	millis() + Narcoleptic.millis();
+}
 
 static inline void animateOperationLed ()
 {
@@ -163,7 +173,7 @@ static inline void autoLoop()
 		case opened:
 			if (s.period == night)
 			{
-				s.timer_start = millis();
+				s.timer_start = totalMillis();
 #ifdef ENABLE_VALIDATION
 				s.door = closing_validation;
 #else
@@ -175,7 +185,7 @@ static inline void autoLoop()
 		case closed:
 			if (s.period == day)
 			{
-				s.timer_start = millis();
+				s.timer_start = totalMillis();
 #ifdef ENABLE_VALIDATION
 				s.door = opening_validation;
 #else
@@ -185,7 +195,7 @@ static inline void autoLoop()
 			}
 		break;
 		case status_start: 
-			s.timer_start = millis();
+			s.timer_start = totalMillis();
 			if (s.period == night)
 			{
 #ifdef ENABLE_VALIDATION
@@ -206,42 +216,42 @@ static inline void autoLoop()
 			}
 		break;
 		case opening:
-			if (millis() - s.timer_start >= TIMEOUT_COMMAND)
+			if (totalMillis() - s.timer_start >= TIMEOUT_COMMAND)
 			{
 				setMotor (stop);
 				s.door = opened;
 			}
 		break;
 		case closing:
-			if (millis() - s.timer_start >= TIMEOUT_COMMAND) 
+			if (totalMillis() - s.timer_start >= TIMEOUT_COMMAND) 
 			{
 				setMotor (stop);
 				s.door = closed;
 			}
 		break;
 		case opening_validation:
-			if (millis() - s.timer_start >= TIMEOUT_VALIDATION)
+			if (totalMillis() - s.timer_start >= TIMEOUT_VALIDATION)
 			{
-				s.timer_start = millis();
+				s.timer_start = totalMillis();
 				setMotor (open);
 				s.door = opening;
 			}
 			else if (s.period == night)
 			{
-				s.timer_start = millis();
+				s.timer_start = totalMillis();
 				s.door = closing_validation;
 			}
 		break;
 		case closing_validation:
-			if (millis() - s.timer_start >= TIMEOUT_VALIDATION)
+			if (totalMillis() - s.timer_start >= TIMEOUT_VALIDATION)
 			{
-				s.timer_start = millis();
+				s.timer_start = totalMillis();
 				setMotor (close);
 				s.door = closing;
 			}
 			else if (s.period == day)
 			{
-				s.timer_start = millis();
+				s.timer_start = totalMillis();
 				s.door = opening_validation;
 			}
 		break;
@@ -271,14 +281,16 @@ void setup()
 
 	s.door = status_start;
 	s.period = day;
-	s.timer_start = millis();
+	s.timer_start = totalMillis();
 
-	#ifdef SER_DBG_PRINT
+#ifdef SER_DBG_PRINT
 	Serial.begin(9600);
 	Serial.println("");
 	Serial.println("*** PROGRAMMA AVVIATO ***");
 	Serial.println("");
-	#endif
+#else
+	Narcoleptic.disableSerial();
+#endif
 }
 
 void loop()
@@ -299,6 +311,8 @@ void loop()
 
 	sp = s;
 	++cycles;
+
+        Narcoleptic.delay (SLEEP_TIME);
 }
 
 
