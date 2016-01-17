@@ -3,19 +3,19 @@
  Il Pollaio di Cleto
  
  Autori: Alessandro alessandro.gentilini@gmail.com, Daniele C.
- Data  : 20 novembre 2010
+ Data  : 29 dicembre 2010
 
 */
 
 #include <Narcoleptic.h>
  
-#define SER_DBG_PRINT // commentare la riga per non avere i print su seriale
+// #define SER_DBG_PRINT // commentare la riga per non avere i print su seriale
 #define ENABLE_VALIDATION // commentare la riga per non avere il meccanismo di validazione giorno notte
 
 // tempi in ms
-#define TIMEOUT_COMMAND               130000
-#define TIMEOUT_VALIDATION_CLOSE 1200000
-#define TIMEOUT_VALIDATION_OPEN    300000
+#define TIMEOUT_COMMAND               180000
+#define TIMEOUT_VALIDATION_CLOSE      900000
+#define TIMEOUT_VALIDATION_OPEN       300000
 
 // bottoni in ingresso
 #define MANUAL_BTN 12
@@ -28,7 +28,7 @@
 
 // fotoresistore
 #define LIGHT_METER 0
-#define LIGHT_THRESHOLD 400
+#define LIGHT_THRESHOLD 100 // su 1023
 
 // uscite
 #define MOTOR 11
@@ -51,11 +51,15 @@
 #define ERROR_LED RED_LED
 
 #define OPERATION_LED_OFF_MS 16000
-#define OPERATION_LED_ON_MS 125
+#define OPERATION_LED_ON_MS  125
+#define ERROR_LED_STARTUP_MS 1000
 
-#define SLEEP_TIME_AUTO 2000
+#define SLEEP_TIME_AUTO   2000
 #define SLEEP_TIME_MANUAL 500
+#define SLEEP_TIME_DEBUG  2000
 #define SLEEP_TIME_LED_ON OPERATION_LED_ON_MS
+
+#define EOS 255
 
 enum door_status_t
 {
@@ -70,8 +74,8 @@ enum door_status_t
 
 enum period_t
 {
-	night,
-	day,
+	night = 0,
+	day   = 1,
 };
 
 enum motor_t
@@ -93,6 +97,8 @@ public:
 	int light;
 
 	unsigned long timer_start;
+
+        bool debug;
 
 	bool operator!= ( const Status& rhs )
 	{
@@ -122,10 +128,78 @@ static inline bool animateOperationLed ()
 	return ledOn;
 }
 
+static inline byte led (int v)
+{
+       return v ? GREEN_LED : RED_LED;
+}
+
+static inline void computeDebugLedSequence (byte *seq, int len)
+{
+        int i=0;
+	seq[i++] = RED_LED;
+        seq[i++] = 0;
+        seq[i++] = 0;
+       
+        seq[i++] = led (s.period);
+        seq[i++] = 0;
+        seq[i++] = 0;
+	
+        for (int j=3;j>=0;--j)
+        {
+               seq[i++] = led (s.door & (1 << j));
+               seq[i++] = 0;
+        }
+        seq[i++] = 0;
+	
+        for (int j=9;j>=0;--j)
+        {
+               seq[i++] = led (s.light & (1 << j));
+               seq[i++] = 0;
+        }
+        
+        seq[i++] = EOS;
+}
+
+static inline bool animateDebugLeds ()
+{
+        static int progress = 0;
+        static const int len = 256;
+        static byte led_sequence[len];
+        
+        if (progress == 0)
+                computeDebugLedSequence(led_sequence, len);
+        
+        if (progress == len || led_sequence[progress] == EOS)
+        {
+                progress = 0;
+                s.debug = false;
+                return false;
+        }
+        
+        digitalWrite (RED_LED, led_sequence[progress] == RED_LED ? HIGH : LOW);
+        digitalWrite (GREEN_LED, led_sequence[progress] == GREEN_LED ? HIGH : LOW);
+        
+        return led_sequence[progress++];
+}
+
+static inline bool animateLeds ()
+{
+        // Trigger per entrare in modalità debug
+        if (!s.debug)
+                s.debug = s.close_btn == PRESSED && s.open_btn == PRESSED;
+        
+        if (s.debug)
+                return animateDebugLeds ();
+        else
+                return animateOperationLed ();
+}
+
 static inline unsigned long sleepTime (bool ledOn)
 {
 	if (ledOn)
 		return SLEEP_TIME_LED_ON;
+        else if ( s.debug )
+                return SLEEP_TIME_DEBUG;
 	else if ( s.manual_btn == PRESSED )
 		return SLEEP_TIME_MANUAL;
 	else
@@ -295,12 +369,18 @@ void setup()
 
         setMotor( stop );
 
-        digitalWrite( RED_LED, LOW );
+        // Segnalazione errore pre-avvio
+        digitalWrite( ERROR_LED, HIGH );
+        Narcoleptic.delay( ERROR_LED_STARTUP_MS );
+        
+        // Poi tutti i led vengono spenti
+        digitalWrite( RED_LED, LOW );       
 	digitalWrite( GREEN_LED, LOW );  
 
 	s.door = status_start;
 	s.period = day;
 	s.timer_start = totalMillis();
+        s.debug = false;
 
 #ifdef SER_DBG_PRINT
 	Serial.begin(9600);
@@ -314,8 +394,6 @@ void setup()
 
 void loop()
 {	
-  	Serial.println(cycles,DEC);
-  
 	readInputs ();
 
 	if ( s.manual_btn == PRESSED )
@@ -331,7 +409,7 @@ void loop()
 	sp = s;
 	++cycles;
 
-        Narcoleptic.delay (sleepTime(animateOperationLed ()));
+        Narcoleptic.delay (sleepTime(animateLeds ()));
 }
 
 
@@ -344,7 +422,7 @@ void error( char* msg )
 	Serial.println(msg);
 	Serial.print("RESETTARE");
 	#endif
-//	while(true){};
+	while(true){};
 }
 
 #ifdef SER_DBG_PRINT
