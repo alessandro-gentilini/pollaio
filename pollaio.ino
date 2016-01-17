@@ -9,7 +9,7 @@
 
 #include <Narcoleptic.h>
  
-// #define SER_DBG_PRINT // commentare la riga per non avere i print su seriale
+#define SER_DBG_PRINT // commentare la riga per non avere i print su seriale
 #define ENABLE_VALIDATION // commentare la riga per non avere il meccanismo di validazione giorno notte
 
 // tempi in ms
@@ -314,6 +314,8 @@ void setup()
 
 void loop()
 {	
+  	Serial.println(cycles,DEC);
+  
 	readInputs ();
 
 	if ( s.manual_btn == PRESSED )
@@ -342,7 +344,7 @@ void error( char* msg )
 	Serial.println(msg);
 	Serial.print("RESETTARE");
 	#endif
-	while(true){};
+//	while(true){};
 }
 
 #ifdef SER_DBG_PRINT
