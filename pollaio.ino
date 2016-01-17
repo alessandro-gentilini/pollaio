@@ -3,7 +3,7 @@
  Il Pollaio di Cleto
  
  Autori: Alessandro alessandro.gentilini@gmail.com, Daniele C.
- Data  : 20 settembre 2010
+ Data  : 20 novembre 2010
 
 */
 
@@ -13,8 +13,9 @@
 #define ENABLE_VALIDATION // commentare la riga per non avere il meccanismo di validazione giorno notte
 
 // tempi in ms
-#define TIMEOUT_COMMAND     130000
-#define TIMEOUT_VALIDATION  300000
+#define TIMEOUT_COMMAND               130000
+#define TIMEOUT_VALIDATION_CLOSE 1200000
+#define TIMEOUT_VALIDATION_OPEN    300000
 
 // bottoni in ingresso
 #define MANUAL_BTN 12
@@ -27,7 +28,7 @@
 
 // fotoresistore
 #define LIGHT_METER 0
-#define LIGHT_THRESHOLD 50
+#define LIGHT_THRESHOLD 400
 
 // uscite
 #define MOTOR 11
@@ -248,7 +249,7 @@ static inline void autoLoop()
 			}
 		break;
 		case opening_validation:
-			if (totalMillis() - s.timer_start >= TIMEOUT_VALIDATION)
+			if (totalMillis() - s.timer_start >= TIMEOUT_VALIDATION_OPEN)
 			{
 				s.timer_start = totalMillis();
 				setMotor (open);
@@ -261,7 +262,7 @@ static inline void autoLoop()
 			}
 		break;
 		case closing_validation:
-			if (totalMillis() - s.timer_start >= TIMEOUT_VALIDATION)
+			if (totalMillis() - s.timer_start >= TIMEOUT_VALIDATION_CLOSE)
 			{
 				s.timer_start = totalMillis();
 				setMotor (close);
