@@ -34,8 +34,8 @@
 #define GO HIGH
 #define STOP LOW
 
-#define OPEN_DIR LOW
-#define CLOSE_DIR HIGH
+#define OPEN_DIR HIGH
+#define CLOSE_DIR LOW
 
 #define GREEN_LED 7
 #define RED_LED 6
@@ -65,7 +65,6 @@ public:
   byte open_btn;
   byte close_btn;
   byte manual_btn;
-  byte limit_swt;
 
   int light;
 
@@ -75,7 +74,7 @@ public:
   bool operator!= ( const Status& rhs )
   {
     bool same = door==rhs.door && period==rhs.period && open_btn==rhs.open_btn && close_btn==rhs.close_btn 
-      && manual_btn==rhs.manual_btn && limit_swt==rhs.limit_swt;
+      && manual_btn==rhs.manual_btn;
     return !same;
   }
 };
@@ -123,11 +122,11 @@ void loop()
   s.close_btn  = digitalRead( CLOSE_BTN );
   s.manual_btn = digitalRead( MANUAL_BTN );
 
-  s.limit_swt = digitalRead( LIMIT_SWT );
+
 
   s.light = analogRead( LIGHT_METER ); 
 
-  if ( s.light < 512 )   
+  if ( s.light < 50 )   
   {
     s.period = night;
   }   
@@ -136,28 +135,15 @@ void loop()
     s.period = day;
   }
 
-  if ( s.manual_btn != PRESSED )  {
-    if ( s.limit_swt == REACHED )   
-    {
-      digitalWrite( MOTOR, STOP );      
-      if ( digitalRead( DIRECTION ) == OPEN_DIR )    
-      {
-        s.door = opened;
-      }     
-      else     
-      {
-        s.door = closed;
-      }
-    }
-    else
-    {
+  if ( s.manual_btn != PRESSED )  
+  {
       unsigned long now = millis();
       if ( digitalRead( DIRECTION ) == OPEN_DIR )
       {
         if ( s.manual_btn != PRESSED && digitalRead( MOTOR ) == GO && (now - s.start_open) > MAX_OPEN_TIME )
         {
           digitalWrite( MOTOR, STOP );  
-          error("L'APERTURA HA IMPIEGATO TROPPO TEMPO");
+          s.door = closed;
         }
       }
       else
@@ -165,10 +151,9 @@ void loop()
         if ( s.manual_btn != PRESSED && digitalRead( MOTOR ) == GO && (now - s.start_close) > MAX_CLOSE_TIME )
         {
           digitalWrite( MOTOR, STOP );              
-          error("LA CHIUSURA HA IMPIEGATO TROPPO TEMPO");
-        }      
+          s.door = opened;          
+        }
       }
-    }
   }
 
   if ( s != sp ) 
@@ -274,7 +259,7 @@ void print_status()
 
   if ( s.manual_btn == PRESSED ){Serial.println("PULSANTE MANUALE PREMUTO");}else{Serial.println("PULSANTE MANUALE NON PREMUTO");}  
 
-  if ( s.limit_swt == REACHED ){Serial.println("FINECORSA IMPEGNATO");}else{Serial.println("FINECORSA LIBERO");}
+
 
   Serial.println("");
   Serial.println("USCITE:");
