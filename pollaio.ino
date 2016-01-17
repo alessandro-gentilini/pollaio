@@ -1,11 +1,9 @@
-//+cgdcont=1,"IP","internet.wind"
-
 /* 
  
  Il Pollaio di Cleto
  
  Autori: Alessandro alessandro.gentilini@gmail.com, Daniele C.
- Data  : 5 agosto 2010
+ Data  : 6 agosto 2010
 
  */
  
@@ -163,7 +161,6 @@ static inline void autoLoop()
 	switch (s.door)
 	{
 		case opened:
-                        setMotor (stop);
 			if (s.period == night)
 			{
 				s.timer_start = millis();
@@ -176,7 +173,6 @@ static inline void autoLoop()
 			}
 		break;
 		case closed:
-                        setMotor (stop);
 			if (s.period == day)
 			{
 				s.timer_start = millis();
@@ -211,11 +207,17 @@ static inline void autoLoop()
 		break;
 		case opening:
 			if (millis() - s.timer_start >= TIMEOUT_COMMAND)
+			{
+				setMotor (stop);
 				s.door = opened;
+			}
 		break;
 		case closing:
-			if (millis() - s.timer_start >= TIMEOUT_COMMAND)
+			if (millis() - s.timer_start >= TIMEOUT_COMMAND) 
+			{
+				setMotor (stop);
 				s.door = closed;
+			}
 		break;
 		case opening_validation:
 			if (millis() - s.timer_start >= TIMEOUT_VALIDATION)
