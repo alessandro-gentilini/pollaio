@@ -1,6 +1,60 @@
-/* Il Pollaio di Cleto
+/* 
+
+Il Pollaio di Cleto
+
+Autore: Alessandro alessandro.gentilini@gmail.com
+Data  : 5 maggio 2010
+
+Descrizione
+-----------
+
+Il pulsante rosso è indicato con MANUAL.
+
+I due pulsanti neri sono indicati con OPEN e CLOSE.
+
+Se MANUAL è premuto e si preme contemporaneamente OPEN (rispettivamente CLOSE) 
+il motore si muove nella direzione FORWARD (BACKWARD) fintanto che OPEN (CLOSE)
+è premuto.
+
+Se MANUAL non è premuto, la pressione di OPEN (rispettivamente CLOSE) muove il
+motore nella direzione FORWARD (BACKWARD) per il tempo FORWARD_TIME (BACKWARD_TIME) 
+se door era CLOSED (OPENED).
+
+Se MANUAL non è premuto, e OPEN e CLOSE sono non premuti, e door è CLOSED 
+(rispettivamente OPENED) allora sunrise==true (sunset==true) muove il motore  
+nella direzione FORWARD (BACKWARD) per il tempo FORWARD_TIME (BACKWARD_TIME). 
+
+
+Note
+----
+
+Ho provato il programma alimentando Arduino con la porta USB (+5VDC) e fornendo 
+sui fili arancioni la +12VDC  di alimentazione del motore (i due fili esterni
+arancioni, attenzione alla polarità). 
+I due fili arancioni interni vanno al motore.
+In questa situazione di doppia alimentazione affinché tutto funzioni è necessario
+collegare lo zero di riferimento della +5VDC allo zero di riferimento della +12VDC.
+Nella versione finale anche Arduino sarà alimentato a +12VDC.
+
+Collegando Arduino con USB ad un computer che abbia installati i driver FTDI
+la alla USB verrà associata una porta seriale COM, con hyperterminal si può
+vedere l'output prodotto da Arduino collegandosi a 9600bps 8-1 none, altrimenti
+scaricare l'IDE da www.arduino.cc
+
+Mancano i fine corsa: il programma assegna alla variabile door i valori OPENED e 
+CLOSED senza conoscere l'effettivo stato della porta del pollaio.
+
+Il riconoscimento di alba e tramonto non è corretto in tutte le situazioni: 
+attualmente funziona solamente se la transizione buio/luce (luce/buio) è
+"repentina".
+
+L'inglese è un po' infelice ;-)
 
 */
+
+// tempi in ms
+#define FORWARD_TIME 3000
+#define BACKWARD_TIME 3000
 
 // bottoni in ingresso
 #define MANUAL 12
@@ -13,10 +67,6 @@
 // uscite
 #define MOTOR 11
 #define DIRECTION 13
-
-// tempi in ms
-#define FORWARD_TIME 3000
-#define BACKWARD_TIME 3000
 
 #define PRESSED LOW
 #define RELEASED HIGH
