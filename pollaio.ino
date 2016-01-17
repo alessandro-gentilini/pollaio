@@ -2,7 +2,7 @@
  
  Il Pollaio di Cleto
  
- Autore: Alessandro agentilini@gmail.com
+ Autore: Alessandro alessandro.gentilini@gmail.com
  Data  : 30 maggio 2010
  
  Descrizione
