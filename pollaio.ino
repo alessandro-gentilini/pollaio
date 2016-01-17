@@ -3,7 +3,7 @@
  Il Pollaio di Cleto
  
  Autori: Alessandro alessandro.gentilini@gmail.com, Daniele C.
- Data  : 29 dicembre 2010
+ Data  : 17 gennaio 2011
 
 */
 
@@ -13,7 +13,7 @@
 #define ENABLE_VALIDATION // commentare la riga per non avere il meccanismo di validazione giorno notte
 
 // tempi in ms
-#define TIMEOUT_COMMAND               180000
+#define TIMEOUT_COMMAND               210000
 #define TIMEOUT_VALIDATION_CLOSE      900000
 #define TIMEOUT_VALIDATION_OPEN       300000
 
@@ -184,7 +184,7 @@ static inline bool animateDebugLeds ()
 
 static inline bool animateLeds ()
 {
-        // Trigger per entrare in modalit‡ debug
+        // Trigger per entrare in modalit√† debug
         if (!s.debug)
                 s.debug = s.close_btn == PRESSED && s.open_btn == PRESSED;
         
@@ -469,3 +469,4 @@ void print_status()
 }
 
 #endif
+
