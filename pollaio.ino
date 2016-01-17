@@ -31,7 +31,7 @@
 
 // uscite
 #define MOTOR 11
-#define DIRECTION 13
+#define DIRECTION 7
 
 #define PRESSED LOW
 #define RELEASED HIGH
@@ -43,7 +43,7 @@
 #define CLOSE_DIR LOW
 #define STOP_DIR CLOSE_DIR
 
-#define GREEN_LED 7
+#define GREEN_LED 13
 #define RED_LED 6
 
 #define OPERATION_LED GREEN_LED
