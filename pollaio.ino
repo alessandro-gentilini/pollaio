@@ -2,7 +2,7 @@
  
  Il Pollaio di Cleto
  
- Autore: Alessandro alessandro.gentilini@gmail.com
+ Autore: Alessandro agentilini@gmail.com
  Data  : 30 maggio 2010
  
  Descrizione
@@ -118,6 +118,18 @@ public:
       && manual_btn==rhs.manual_btn && limit_swt==rhs.limit_swt;
     return !same;
   }
+
+//  void toString() const
+//  {
+//    Serial.print("\n");
+//    Serial.print(door,DEC);
+//    Serial.print(period,DEC);
+//    Serial.print(open_btn,DEC);
+//    Serial.print(close_btn,DEC);
+//    Serial.print(manual_btn,DEC);
+//    Serial.print(limit_swt,DEC);
+//    Serial.print("\n");
+//  }
 };
 
 Status s,sp;
@@ -151,6 +163,10 @@ void error( char* msg )
 
 void print_status()
 {
+  static char e1[]="FINECORSA IMPEGNATO E MOTORE IN MOVIMENTO";
+  static char e2[]="FINECORSA LIBERO E MOTORE FERMO";
+  char * error_str = 0;
+
   Serial.println("-----------------------------------------");
   Serial.println("INGRESSI:");
   Serial.print("LUCE=");
@@ -200,7 +216,7 @@ void print_status()
   {
     if ( digitalRead( MOTOR ) == GO ) 
     {
-      error("FINECORSA IMPEGNATO E MOTORE IN MOVIMENTO");
+      error_str = e1;
     }
     Serial.println("FINECORSA IMPEGNATO");
   }  
@@ -208,13 +224,12 @@ void print_status()
   {
     if ( digitalRead( MOTOR ) == STOP ) 
     {
-      error("FINECORSA LIBERO E MOTORE FERMO");
+      error_str = e2;
     }    
     Serial.println("FINECORSA LIBERO");
   }
 
-  Serial.println("");  
-  Serial.println("USCITE:");
+  Serial.println("\nUSCITE:");
   if ( digitalRead( MOTOR ) == GO )
   {
     Serial.println("MOTORE IN MOVIMENTO");
@@ -247,6 +262,12 @@ void print_status()
   default: 
     error("STATO PORTA INASPETTATO"); 
     break;
+  }
+
+  if ( error_str ) 
+  {
+    Serial.println("\nERRORI");
+    error( error_str );
   }
   Serial.println("-----------------------------------------");
 }
@@ -316,7 +337,6 @@ void loop()
       || s.open_btn == RELEASED && s.close_btn == RELEASED )    
     {
       digitalWrite( MOTOR, STOP );
-      return;
     }  
 
     if ( s.open_btn == PRESSED && s.close_btn == RELEASED )    
@@ -325,7 +345,6 @@ void loop()
       digitalWrite( MOTOR, GO );
       s.door = unknown_status;
       Serial.println("\nCOMANDO APERTURA ATTIVO\n");
-      return;
     }
 
     if ( s.open_btn == RELEASED && s.close_btn == PRESSED )    
@@ -334,7 +353,6 @@ void loop()
       digitalWrite( MOTOR, GO );
       s.door = unknown_status;
       Serial.println("\nCOMANDO CHIUSURA ATTIVO\n");
-      return;        
     }
 
   }  
@@ -367,6 +385,11 @@ void loop()
 
   sp = s;
 }
+
+
+
+
+
 
 
 
