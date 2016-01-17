@@ -37,6 +37,10 @@
 #define OPEN_DIR LOW
 #define CLOSE_DIR HIGH
 
+#define GREEN_LED 7
+#define RED_LED 6
+
+
 
 
 enum door_status_t
@@ -88,6 +92,9 @@ void setup()
 
   pinMode( MOTOR    , OUTPUT );
   pinMode( DIRECTION, OUTPUT );
+  
+  pinMode( RED_LED, OUTPUT );
+  pinMode( GREEN_LED, OUTPUT );
 
   digitalWrite( MOTOR, STOP );
   digitalWrite( DIRECTION, OPEN_DIR );
@@ -102,6 +109,9 @@ void setup()
   Serial.println("");
   Serial.println("*** PROGRAMMA AVVIATO ***");
   Serial.println("");
+  
+  digitalWrite( RED_LED, HIGH );
+  digitalWrite( GREEN_LED, LOW );  
 }
 
 
