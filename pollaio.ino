@@ -8,8 +8,8 @@
  */
 
 // tempi in ms
-#define MAX_OPEN_TIME 2000
-#define MAX_CLOSE_TIME 2000
+#define MAX_OPEN_TIME 90000
+#define MAX_CLOSE_TIME 90000
 #define INRUSH_TIME 1000
 
 // bottoni in ingresso
@@ -19,7 +19,7 @@
 
 // finecorsa
 #define LIMIT_SWT 8
-#define REACHED 1
+#define REACHED LOW
 
 // fotoresistore
 #define LIGHT_METER 0
@@ -136,36 +136,38 @@ void loop()
     s.period = day;
   }
 
-  if ( s.limit_swt == REACHED )   
-  {
-    digitalWrite( MOTOR, STOP );      
-    if ( digitalRead( DIRECTION ) == OPEN_DIR )    
+  if ( s.manual_btn != PRESSED )  {
+    if ( s.limit_swt == REACHED )   
     {
-      s.door = opened;
-    }     
-    else     
-    {
-      s.door = closed;
-    }
-  }
-  else
-  {
-    unsigned long now = millis();
-    if ( digitalRead( DIRECTION ) == OPEN_DIR )
-    {
-      if ( s.manual_btn != PRESSED && digitalRead( MOTOR ) == GO && (now - s.start_open) > MAX_OPEN_TIME )
+      digitalWrite( MOTOR, STOP );      
+      if ( digitalRead( DIRECTION ) == OPEN_DIR )    
       {
-        digitalWrite( MOTOR, STOP );  
-        error("L'APERTURA HA IMPIEGATO TROPPO TEMPO");
+        s.door = opened;
+      }     
+      else     
+      {
+        s.door = closed;
       }
     }
     else
     {
-      if ( s.manual_btn != PRESSED && digitalRead( MOTOR ) == GO && (now - s.start_close) > MAX_CLOSE_TIME )
+      unsigned long now = millis();
+      if ( digitalRead( DIRECTION ) == OPEN_DIR )
       {
-        digitalWrite( MOTOR, STOP );              
-        error("LA CHIUSURA HA IMPIEGATO TROPPO TEMPO");
-      }      
+        if ( s.manual_btn != PRESSED && digitalRead( MOTOR ) == GO && (now - s.start_open) > MAX_OPEN_TIME )
+        {
+          digitalWrite( MOTOR, STOP );  
+          error("L'APERTURA HA IMPIEGATO TROPPO TEMPO");
+        }
+      }
+      else
+      {
+        if ( s.manual_btn != PRESSED && digitalRead( MOTOR ) == GO && (now - s.start_close) > MAX_CLOSE_TIME )
+        {
+          digitalWrite( MOTOR, STOP );              
+          error("LA CHIUSURA HA IMPIEGATO TROPPO TEMPO");
+        }      
+      }
     }
   }
 
