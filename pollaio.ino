@@ -8,21 +8,21 @@
  Descrizione
  -----------
  
- Il pulsante rosso e' indicato con MANUAL.
+ Il pulsante rosso e' indicato con MANUAL_BTN.
  
- I due pulsanti neri sono indicati con OPEN e CLOSE.
+ I due pulsanti neri sono indicati con OPEN_BTN e CLOSE_BTN.
  
- Se MANUAL e' premuto e si preme contemporaneamente OPEN (rispettivamente CLOSE) 
- il motore si muove nella direzione FORWARD (BACKWARD) fintanto che OPEN (CLOSE)
+ Se MANUAL_BTN e' premuto e si preme contemporaneamente OPEN_BTN (rispettivamente CLOSE_BTN) 
+ il motore si muove nella direzione OPEN_DIR (CLOSE_DIR) fintanto che OPEN_BTN (CLOSE_BTN)
  e' premuto.
  
- Se MANUAL non e' premuto, la pressione di OPEN (rispettivamente CLOSE) muove il
- motore nella direzione FORWARD (BACKWARD) fino ad avere LIMIT REACHED
+ Se MANUAL_BTN non e' premuto, la pressione di OPEN_BTN (rispettivamente CLOSE_BTN) muove il
+ motore nella direzione OPEN_DIR (CLOSE_DIR) fino ad avere LIMIT_SWT REACHED
  se door era CLOSED (OPENED).
  
- Se MANUAL non e' premuto, e OPEN e CLOSE sono non premuti, e door e' CLOSED 
+ Se MANUAL_BTN non e' premuto, e OPEN_BTN e CLOSE_BTN sono non premuti, e door e' CLOSED 
  (rispettivamente OPENED) allora sunrise==true (sunset==true) muove il motore  
- nella direzione FORWARD (BACKWARD) fino ad avere LIMIT REACHED. 
+ nella direzione OPEN_DIR (CLOSE_DIR) fino ad avere LIMIT_SWT REACHED. 
  
  
  Note
@@ -57,12 +57,12 @@
 #define BACKWARD_TIME 3000
 
 // bottoni in ingresso
-#define MANUAL 12
-#define OPEN   10
-#define CLOSE  9
+#define MANUAL_BTN 12
+#define OPEN_BTN   10
+#define CLOSE_BTN  9
 
 // finecorsa
-#define LIMIT 8
+#define LIMIT_SWT 8
 #define REACHED 0
 
 // fotoresistore
@@ -78,31 +78,44 @@
 #define GO HIGH
 #define STOP LOW
 
-#define FORWARD LOW
-#define BACKWARD HIGH
+#define OPEN_DIR LOW
+#define CLOSE_DIR HIGH
 
-#define OPENED false
-#define CLOSED true
 
-bool door;
-bool motor_is_moving;
-int prev_light;
+
+enum door_status_t
+{
+  closed,
+  opened,
+  unknown_status
+};
+
+enum period_t
+{
+  night,
+  day,
+  unknown_period
+};
+
+door_status_t door;
+period_t period;
 
 void setup() 
 {
-  pinMode( MANUAL, INPUT );  
-  pinMode( OPEN,INPUT );  
-  pinMode( CLOSE, INPUT );  
+  pinMode( MANUAL_BTN, INPUT );  
+  pinMode( OPEN_BTN  , INPUT );  
+  pinMode( CLOSE_BTN , INPUT );  
 
-  pinMode( MOTOR, OUTPUT );
+  pinMode( LIMIT_SWT, INPUT );
+
+  pinMode( MOTOR    , OUTPUT );
   pinMode( DIRECTION, OUTPUT );
 
   digitalWrite( MOTOR, STOP );
-  digitalWrite( DIRECTION, FORWARD );
+  digitalWrite( DIRECTION, OPEN_DIR );
 
-  door = CLOSED;
-  prev_light = 0;
-  motor_is_moving = false;
+  door = unknown_status;
+  period = unknown_period;
   Serial.begin(9600);
 }
 
@@ -111,15 +124,80 @@ byte close_btn;
 byte manual_btn;
 byte limit;
 
-
+void error( char* msg )
+{
+  char buf[64];
+  sprintf(buf,"ERRORE: %s", msg );
+  Serial.println(buf);
+}
 
 void loop()
 {
-  open_btn = digitalRead( OPEN );
-  close_btn = digitalRead( CLOSE );
-  manual_btn = digitalRead( MANUAL );
+  delay(500);
 
-  limit = digitalRead( LIMIT );
+  open_btn   = digitalRead( OPEN_BTN );
+  close_btn  = digitalRead( CLOSE_BTN );
+  manual_btn = digitalRead( MANUAL_BTN );
+
+  limit = digitalRead( LIMIT_SWT );
+
+  int light = analogRead( LIGHT_METER ); 
+  if ( light < 512 ) 
+  {
+    period = night;
+  } 
+  else 
+  {
+    period = day;
+  }
+
+  if ( limit == REACHED ) 
+  {
+    digitalWrite( MOTOR, STOP );      
+    int dir = digitalRead( DIRECTION );
+    if ( dir == OPEN_DIR )
+    {
+      door = opened;
+    } 
+    else 
+    {
+      door = closed;
+    }
+  }
+
+  char b[16];
+  sprintf(b,"LUCE=%d",light);
+  Serial.println(b);  
+
+  switch(period)
+  {
+  case day: 
+    Serial.println("GIORNO");
+    break;
+  case night: 
+    Serial.println("NOTTE");
+    break;
+  default: 
+    error("PERIODO IGNOTO");
+    break;
+  }
+
+  switch(door)
+  {
+  case opened:  
+    Serial.println("PORTA APERTA"); 
+    break;
+  case closed:  
+    Serial.println("PORTA CHIUSA"); 
+    break;
+  case unknown_status: 
+    Serial.println("PORTA ??????"); 
+    break;
+  default: 
+    error("STATO PORTA INASPETTATO"); 
+    break;
+  }
+
 
   if ( manual_btn == PRESSED )
   {
@@ -127,79 +205,50 @@ void loop()
       || open_btn == RELEASED && close_btn == RELEASED )
     {
       digitalWrite( MOTOR, STOP );
-      motor_is_moving = false;      
       return;
     }  
 
     if ( open_btn == PRESSED && close_btn == RELEASED )
     {
+      digitalWrite( DIRECTION, OPEN_DIR );
       digitalWrite( MOTOR, GO );
-      digitalWrite( DIRECTION, FORWARD );
-      motor_is_moving = true;
+      door = unknown_status;
+      Serial.println("COMANDO APERTURA ATTIVO");
       return;
     }
 
     if ( open_btn == RELEASED && close_btn == PRESSED )
     {
+      digitalWrite( DIRECTION, CLOSE_DIR );      
       digitalWrite( MOTOR, GO );
-      digitalWrite( DIRECTION, BACKWARD );
-      motor_is_moving = true;      
+      door = unknown_status;
+      Serial.println("COMANDO CHIUSURA ATTIVO");
       return;        
     }
 
   } 
-  else {
-    if ( door == OPENED ) {
-      Serial.println("PORTA APERTA");
-    } 
-    else {
-      Serial.println("PORTA CHIUSA");
-    }
-
-    int light_now = analogRead( LIGHT_METER ); 
-    char b[8];
-    sprintf(b,"%d",light_now);
-    Serial.println(b);
-    delay(500);
-    bool sunset = false;
-    bool sunrise = false;
-
-    if ( light_now - prev_light > 300 ) {
-      sunrise = true;
-      Serial.println("ALBA :-)");
-    }
-
-    if ( prev_light - light_now > 300 ) {
-      sunset = true;
-      Serial.println("TRAMONTO :-(");        
-    }
-
-    prev_light = light_now;
-
-    if ( sunset && sunrise ) return;
-
-    if ( door == CLOSED && ( open_btn == PRESSED || sunrise ) )
+  else 
+  {
+    if ( door == closed && ( open_btn == PRESSED || period == day ) )
     {
-      digitalWrite( DIRECTION, FORWARD );
+      digitalWrite( DIRECTION, OPEN_DIR );
       digitalWrite( MOTOR, GO );
-      Serial.println("LA PORTA SI STA APRENDO");
-      motor_is_moving = true;
+      door = unknown_status;
+      Serial.println("INIZIATA APERTURA AUTOMATICA PORTA");
     }
 
-    if ( door == OPENED && ( close_btn == PRESSED || sunset ) )
+    if ( door == opened && ( close_btn == PRESSED || period == night ) )
     {
-      digitalWrite( DIRECTION, BACKWARD );
+      digitalWrite( DIRECTION, CLOSE_DIR );
       digitalWrite( MOTOR, GO );
-      Serial.println("LA PORTA SI STA CHIUDENDO");
-      motor_is_moving = true;
+      door = unknown_status;
+      Serial.println("INIZIATA CHIUSURA AUTOMATICA PORTA");
     }      
 
-    if ( motor_is_moving && limit == REACHED ) {
-      digitalWrite( MOTOR, STOP );
-      if ( door == OPENED ) door = CLOSED;
-      if ( door == CLOSED ) door = OPENED;
-      motor_is_moving = false;
-    }
   }
 }
+
+
+
+
 
